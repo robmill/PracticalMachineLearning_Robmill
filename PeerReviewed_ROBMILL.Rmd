@@ -1,0 +1,51 @@
+---
+title: "PracticalMachineLearning_ROBMILL"
+output: html_document
+---
+### Final Peer Reviewed Assignment
+## Practical Machine Learning
+## Week 4
+
+```{r preparation}
+# Load Librarys
+# Load Data
+library(kernlab)
+library(caret)
+
+training<-read.csv(file = "pml-training.csv") # Read training data
+
+testing<-read.csv(file = "pml-testing.csv") # Read testing data
+```
+
+### Initial EDA on Raw Data Set
+Data comes from <http://groupware.les.inf.puc-rio.br/har>
+<http://groupware.les.inf.puc-rio.br/har#weight_lifting_exercises>
+
+### The data set seeks to identify quality of execution for the wearer while doing dumbell lift exercises.  
+
+### Different Classes of execution quality
+* Class A: exactly according to specification.
+* Class B: throwing the elbows to the front.
+* Class C: lifting the dumbell only halfway.
+* Class D: lowering dumbell only halfway.
+* Class E: throwing the hips to the front.
+```{r EDA}
+
+dim(training) # display number or rows/columns
+str(training) # display features
+summary(training) # display summary stats
+names(training)
+
+plot(training$classe,type="hist")
+```
+
+### Partition Training Data and Processing
+```{r }
+
+inTrain<-createDataPartition(training$classe,p=0.70,list=FALSE)
+
+trainingSub<-training[inTrain,]
+testingSub<-training[-inTrain,]
+
+
+```
