@@ -11,6 +11,9 @@ output: html_document
 # Load Data
 library(kernlab)
 library(caret)
+library(ggplot2)
+library(Hmisc)
+library(gridExtra)
 
 training<-read.csv(file = "pml-training.csv") # Read training data
 
