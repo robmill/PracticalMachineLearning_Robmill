@@ -46,6 +46,7 @@ dim(training) # display number or rows/columns
 # summary(training) # display summary stats
 #names(training)
 head(training)
+table(training$classe)
 
 qplot(training$total_accel_forearm,training$total_accel_belt,colour=classe,data=training)
 
@@ -55,26 +56,21 @@ qplot(training$total_accel_arm,training$total_accel_belt,colour=classe,data=trai
 
 qplot(training$total_accel_forearm,training$total_accel_dumbbell,colour=classe,data=training)
 
-#abs(cor(training))
 
-
-#plot(training$classe)
-
-# NA values need to be processed.  
-# Initial investigation on relationships between classe and a set of features
 featurePlot(x=training[,c("total_accel_forearm","total_accel_dumbbell","total_accel_belt","total_accel_arm")], y=training$classe, plot="pairs")
 ```
 
 
 ### Partition Training Data and Processing
-```{r }
+```{r Data Partitioning}
 
 inTrain<-createDataPartition(training$classe,p=0.70,list=FALSE)
 
 trainingSub<-training[inTrain,]
 testingSub<-training[-inTrain,]
 
-
+modFit<-train(classe~total_accel_dumbbell+total_accel_arm,method="rpart",data=training)
+print(modFit$finalModel)
 ```
 
 ## Citation
