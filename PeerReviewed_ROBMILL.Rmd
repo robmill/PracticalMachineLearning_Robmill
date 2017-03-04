@@ -6,7 +6,7 @@ output: html_document
 ## Practical Machine Learning
 ## Week 4
 
-```{r preparation}
+```{r preparation, results='hide'}
 # Load Librarys
 # Load Data
 library(kernlab)
@@ -14,33 +14,57 @@ library(caret)
 library(ggplot2)
 library(Hmisc)
 library(gridExtra)
+library(graphics)
 
-training<-read.csv(file = "pml-training.csv") # Read training data
+training<-read.csv(file = "pml-training.csv",stringsAsFactors = FALSE) # Read training data
 
-testing<-read.csv(file = "pml-testing.csv") # Read testing data
+testing<-read.csv(file = "pml-testing.csv",stringsAsFactors = FALSE) # Read testing data
 ```
 
 ### Initial EDA on Raw Data Set
-Data comes from <http://groupware.les.inf.puc-rio.br/har>
-<http://groupware.les.inf.puc-rio.br/har#weight_lifting_exercises>
+Data comes from: 
+1.  <http://groupware.les.inf.puc-rio.br/har>
+2.  <http://groupware.les.inf.puc-rio.br/har#weight_lifting_exercises>
 
-### The data set seeks to identify quality of execution for the wearer while doing dumbell lift exercises.  
+The data set describes quality of execution for the wearer while doing dumbell lift exercises.  
 
-### Different Classes of execution quality
+Different Classes of execution quality.  High level Class A represents an example of successful execution of the exercise while Classes B-E represent examples of common mistakes made.  
+
 * Class A: exactly according to specification.
 * Class B: throwing the elbows to the front.
 * Class C: lifting the dumbell only halfway.
 * Class D: lowering dumbell only halfway.
 * Class E: throwing the hips to the front.
+
+### The goal of the exercise is to identify predictors that accurately determine execution quality or manner of exercise.
+
+Similar to the iris data set exercise predicting species based on a set of features.  q
 ```{r EDA}
 
 dim(training) # display number or rows/columns
-str(training) # display features
-summary(training) # display summary stats
-names(training)
+# str(training) # display features
+# summary(training) # display summary stats
+#names(training)
+head(training)
 
-plot(training$classe,type="hist")
+qplot(training$total_accel_forearm,training$total_accel_belt,colour=classe,data=training)
+
+qplot(training$total_accel_arm,training$total_accel_dumbbell,colour=classe,data=training)
+
+qplot(training$total_accel_arm,training$total_accel_belt,colour=classe,data=training)
+
+qplot(training$total_accel_forearm,training$total_accel_dumbbell,colour=classe,data=training)
+
+#abs(cor(training))
+
+
+#plot(training$classe)
+
+# NA values need to be processed.  
+# Initial investigation on relationships between classe and a set of features
+featurePlot(x=training[,c("total_accel_forearm","total_accel_dumbbell","total_accel_belt","total_accel_arm")], y=training$classe, plot="pairs")
 ```
+
 
 ### Partition Training Data and Processing
 ```{r }
@@ -52,3 +76,8 @@ testingSub<-training[-inTrain,]
 
 
 ```
+
+## Citation
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+
+Read more: <http://groupware.les.inf.puc-rio.br/har#weight_lifting_exercises#ixzz4aHsvXnQK>
