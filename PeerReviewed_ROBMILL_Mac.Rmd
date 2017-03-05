@@ -25,15 +25,15 @@ validation<-read.csv(file = "pml-testing.csv") # Read testing data
 
 dim(exerciseData)
 ```
+# Synopsis
 
-### Initial EDA on Raw Data Set
 Data comes from: 
 1.  <http://groupware.les.inf.puc-rio.br/har>
 2.  <http://groupware.les.inf.puc-rio.br/har#weight_lifting_exercises>
 
 The data set describes quality of execution for the wearer while doing dumbell lift exercises.  
 
-Different Classes of execution quality.  High level Class A represents an example of successful execution of the exercise while Classes B-E represent examples of common mistakes made.  
+There are 5 different classes representing execution quality.  Class A represents an example of successful execution of the exercise while Classes B-E represent examples of common mistakes made.  
 
 * Class A: exactly according to specification.
 * Class B: throwing the elbows to the front.
@@ -43,7 +43,23 @@ Different Classes of execution quality.  High level Class A represents an exampl
 
 ### The goal of the exercise is to identify predictors that accurately determine execution quality or manner of exercise.
 
-Similar to the iris data set exercise predicting species based on a set of features.  q
+### Three separate modeling approaches were applied:
+1. Naive Bayes: to act as a benchmark for classification performance.
+2. Classification Trees: EDA presents some break opportunities for total_accel features that may lend themselves to a classification tree algorithm.
+3. Boosted Machine (GBM): run against data to test for a more accurate modeling approach.
+
+### Out of sample error
+* Estimated by testing accuracy of each model against a portion of the exerciseData set.
+1. Naive Bayes out of sample error is ~11%.
+2. Classification Tree has an out of sample error of ~30%.
+3. GBM has an estimated out of sample error of ~.03%.
+
+### Summary of model performance.
+1. Naive Bayes predicted all 5 classes of exercise quality equally.
+2. Classification trees failed to predict classes C and D while A, B, and E were reasonable.  EDA supports this finding.
+3. GBM may overfit - and predicts all classes of exercise quality equally.  
+
+### Initial EDA on Raw Data Set
 ```{r EDA }
 
 dim(exerciseData) # display number or rows/columns
@@ -95,37 +111,45 @@ tc.b<-trainControl(method="boot", number=100)
 ```
 
 
-```{r model fitting Naive Bayes}
-set.seed(323223)
+```{r model fitting Naive Bayes, include=FALSE}
+
 
 # Build benchmark model - Naive Bayes
 modFit.NB<-NaiveBayes(classe~., data=training,na.action = na.omit)
 
 # Predict using testing data set
 predictions.NB<-predict(modFit.NB,testing)
+```
 
+```{r confustion matrix for NB}
 # Print accuracy measurements
 confusionMatrix(predictions.NB$class,testing$classe)
 
 
 ```
+### Classification Tree using a Boosting cross-validation TrainControl
 
-
-```{r model fitting Classification Tree}
+```{r model fitting Classification Tree, include=FALSE}
 
 # Train a model 
 modFit.rpart<-train(classe~.,method="rpart",data=training)
 
-modFit.rpart2<-train(classe~.,data=exerciseData,
+modFit.rpart<-train(classe~.,data=exerciseData,
                      trControl=tc.b,
                      method="rpart",
                      na.action = na.omit)
 
 
+
+```
+
+```{r CT predictions}
 # Predict using CT model
-predictions.rpart<-predict(modFit.rpart2,testing)
+predictions.rpart<-predict(modFit.rpart,testing)
 
+```
 
+```{r CT confusion matrix}
 # Print accuracy measurements
 confusionMatrix(predictions.rpart,testing$classe)
 
@@ -145,16 +169,48 @@ modFit.boost<-train(classe~.,method="gbm",
 # Predict Using Test 
 predictions.boost<-predict(modFit.boost,newdata=testing)
 
-# Display accuracy data
+modFit.boost2<-train(class=.,method="gbm",
+                     data=exerciseData,
+                     verbose=FALSE,
+                     na.action=na.omit,
+                     trControl = tc.b)
+
+predictions.boost2<-predict(modFit.boost2,newdata=test)
+
+```
+
+```{r GBM confustion matrix}
+# Display accuracy data - partitioned data
 confusionMatrix(predictions.boost,testing$classe)
+
+# Cross-validated data
+confusionMatrix(predictions.boost2,testing$classe)
 
 ```
 
 ```{r model printing Boosting}
 plot(modFit.boost)
+plot(modFit.boost2)
 ```
 
+```{r generate validation output}
+validation$classe<-predict(modFit.boost,newdata=validation,
+                          na.action=na.omit)
 
+print(validation$classe)
+
+write.csv(validation,file = "exprediction.csv")
+
+validation$classe<-predict(modFit.boost2,newdata=validation,
+                          na.action=na.omit)
+
+print(validation$classee)
+
+write.csv(validation,file="excvprediction.csv")
+
+
+
+```
 ## Citation
 Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
 
