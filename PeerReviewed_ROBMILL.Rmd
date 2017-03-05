@@ -18,6 +18,9 @@ library(graphics)
 
 training<-read.csv(file = "pml-training.csv",stringsAsFactors = FALSE) # Read training data
 
+training<-read.csv(file = "pml-trainingMod.csv",
+                   stringsAsFactors = FALSE)
+
 testing<-read.csv(file = "pml-testing.csv",stringsAsFactors = FALSE) # Read testing data
 ```
 
@@ -62,18 +65,54 @@ featurePlot(x=training[,c("total_accel_forearm","total_accel_dumbbell","total_ac
 
 
 ### Partition Training Data and Processing
-```{r Data Partitioning}
+```{r Data Partitioning and Preproc}
 
 inTrain<-createDataPartition(training$classe,p=0.70,list=FALSE)
 
 trainingSub<-training[inTrain,]
 testingSub<-training[-inTrain,]
 
-modFit<-train(classe~total_accel_dumbbell+total_accel_arm,method="rpart",data=training)
-print(modFit$finalModel)
 ```
 
+```{r model fitting Classification Tree}
+modFit.rpart<-train(classe~total_accel_dumbbell+total_accel_arm+total_accel_belt,method="rpart",data=training)
+
+print(modFit.rpart$finalModel)
+
+plot(modFit.rpart$finalModel,uniform=TRUE,
+     main="Classification Tree")
+text(modFit.rpart$finalModel,use.n=TRUE,all=TRUE,cex=0.8)
+
+predictions.rpart<-predict(modFit.rpart,newdata=testing)
+```
+
+```{r model fitting Random Forest}
+
+#modFit.rf<-train(classe~total_accel_dumbbell+total#_accel_arm+total_accel_belt,data=training,method="#rf",prox=TRUE)
+
+```
+
+### Run a Boosting Algorithm against all features
+* modFit.boost<-train(classe~.,method="gbm",
+              data=training,
+              verbose=FALSE)
+```{r model fitting Boosting, include=FALSE}
+modFit.boost<-train(classe~.,method="gbm",
+              data=training,
+              verbose=FALSE,na.action = na.pass)
+
+modFit.boost$finalModel
+
+```
+
+```{r model printing Boosting}
+print(modFit.boost)
+```
 ## Citation
 Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
 
 Read more: <http://groupware.les.inf.puc-rio.br/har#weight_lifting_exercises#ixzz4aHsvXnQK>
+
+### Useful links
+
+[Preprocess method](https://www.rdocumentation.org/packages/caret/versions/6.0-73/topics/preProcess)
