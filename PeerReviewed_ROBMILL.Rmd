@@ -6,7 +6,7 @@ output: html_document
 ## Practical Machine Learning
 ## Week 4
 
-```{r preparation, results='hide'}
+```{r preparation}
 # Load Librarys
 # Load Data
 library(kernlab)
@@ -15,13 +15,16 @@ library(ggplot2)
 library(Hmisc)
 library(gridExtra)
 library(graphics)
+library(klaR)
 
-training<-read.csv(file = "pml-training.csv",stringsAsFactors = FALSE) # Read training data
+#training<-read.csv(file = "pml-training.csv",stringsAsFactors #= FALSE) # Read training data
 
-training<-read.csv(file = "pml-trainingMod.csv",
-                   stringsAsFactors = FALSE)
+exerciseData<-read.csv(file = "pml-trainingMod.csv",
+                   stringsAsFactors = FALSE) # Read training data
 
-testing<-read.csv(file = "pml-testing.csv",stringsAsFactors = FALSE) # Read testing data
+validation<-read.csv(file = "pml-testing.csv",stringsAsFactors = FALSE) # Read testing data
+
+dim(exerciseData)
 ```
 
 ### Initial EDA on Raw Data Set
@@ -42,37 +45,63 @@ Different Classes of execution quality.  High level Class A represents an exampl
 ### The goal of the exercise is to identify predictors that accurately determine execution quality or manner of exercise.
 
 Similar to the iris data set exercise predicting species based on a set of features.  q
-```{r EDA}
+```{r EDA }
 
-dim(training) # display number or rows/columns
-# str(training) # display features
-# summary(training) # display summary stats
-#names(training)
-head(training)
-table(training$classe)
+dim(exerciseData) # display number or rows/columns
 
-qplot(training$total_accel_forearm,training$total_accel_belt,colour=classe,data=training)
-
-qplot(training$total_accel_arm,training$total_accel_dumbbell,colour=classe,data=training)
-
-qplot(training$total_accel_arm,training$total_accel_belt,colour=classe,data=training)
-
-qplot(training$total_accel_forearm,training$total_accel_dumbbell,colour=classe,data=training)
+head(exerciseData) # display first few rows
+table(exerciseData$classe) # display a table using classe
 
 
-featurePlot(x=training[,c("total_accel_forearm","total_accel_dumbbell","total_accel_belt","total_accel_arm")], y=training$classe, plot="pairs")
+# Density plots
+qplot(total_accel_arm,colour=classe,
+      data=exerciseData, geom="density")
+
+qplot(total_accel_forearm,colour=classe,
+      data=exerciseData,geom="density")
+
+qplot(total_accel_dumbbell,colour=classe,
+      data=exerciseData, geom="density")
+
+qplot(total_accel_belt,colour=classe,
+      data=exerciseData, geom="density")
+
+featurePlot(x=exerciseData[,c("total_accel_forearm","total_accel_dumbbell","total_accel_belt","total_accel_arm")], 
+            y=exerciseData$classe, 
+            plot="pairs",
+            auto.key=list(columns = 4))
 ```
 
 
-### Partition Training Data and Processing
+### Partition exerciseData Data and Processing
 ```{r Data Partitioning and Preproc}
 
-inTrain<-createDataPartition(training$classe,p=0.70,list=FALSE)
+inTrain<-createDataPartition(exerciseData$classe,p=0.70,list=FALSE)
 
-trainingSub<-training[inTrain,]
-testingSub<-training[-inTrain,]
+
+training<-exerciseData[inTrain,]
+testing<-exerciseData[-inTrain,]
+
+dim(training)
+dim(testing)
 
 ```
+
+
+```{r model fitting Naive Bayes}
+
+training$classe<-as.factor(training$classe)
+training$classe
+
+modFit.NB<-NaiveBayes(classe~., data=training,na.action = na.omit)
+
+predictions<-predict(modFit.NB,testing)
+predictions$class
+
+
+confusionMatrix(predictions$class,testing$classe)
+```
+
 
 ```{r model fitting Classification Tree}
 modFit.rpart<-train(classe~total_accel_dumbbell+total_accel_arm+total_accel_belt,method="rpart",data=training)
@@ -86,11 +115,6 @@ text(modFit.rpart$finalModel,use.n=TRUE,all=TRUE,cex=0.8)
 predictions.rpart<-predict(modFit.rpart,newdata=testing)
 ```
 
-```{r model fitting Random Forest}
-
-#modFit.rf<-train(classe~total_accel_dumbbell+total#_accel_arm+total_accel_belt,data=training,method="#rf",prox=TRUE)
-
-```
 
 ### Run a Boosting Algorithm against all features
 * modFit.boost<-train(classe~.,method="gbm",
@@ -101,13 +125,15 @@ modFit.boost<-train(classe~.,method="gbm",
               data=training,
               verbose=FALSE,na.action = na.pass)
 
-modFit.boost$finalModel
+predictions.boost<-predict(modFit.boost,newdata=testing)
 
 ```
 
 ```{r model printing Boosting}
 print(modFit.boost)
 ```
+
+
 ## Citation
 Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
 
@@ -116,3 +142,5 @@ Read more: <http://groupware.les.inf.puc-rio.br/har#weight_lifting_exercises#ixz
 ### Useful links
 
 [Preprocess method](https://www.rdocumentation.org/packages/caret/versions/6.0-73/topics/preProcess)
+
+[Caret package](https://topepo.github.io/caret/model-training-and-tuning.html)
