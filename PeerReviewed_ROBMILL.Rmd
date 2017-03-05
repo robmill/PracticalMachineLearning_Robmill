@@ -75,7 +75,7 @@ testingSub<-training[-inTrain,]
 ```
 
 ```{r model fitting Classification Tree}
-modFit.rpart<-train(classe~total_accel_dumbbell+total_accel_arm+total_accel_belt,method="rpart",data=training)
+modFit.rpart<-train(classe~total_accel_dumbbell+total_accel_arm+total_accel_belt,method="rpart",data=trainingSub)
 
 print(modFit.rpart$finalModel)
 
@@ -83,7 +83,7 @@ plot(modFit.rpart$finalModel,uniform=TRUE,
      main="Classification Tree")
 text(modFit.rpart$finalModel,use.n=TRUE,all=TRUE,cex=0.8)
 
-predictions.rpart<-predict(modFit.rpart,newdata=testing)
+predictions.rpart<-predict(modFit.rpart,newdata=testingSub)
 ```
 
 ```{r model fitting Random Forest}
