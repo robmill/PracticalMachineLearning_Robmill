@@ -26,6 +26,7 @@ validation<-read.csv(file = "pml-testing.csv") # Read testing data
 dim(exerciseData)
 ```
 
+
 ### Initial EDA on Raw Data Set
 Data comes from: 
 1.  <http://groupware.les.inf.puc-rio.br/har>
@@ -43,7 +44,7 @@ Different Classes of execution quality.  High level Class A represents an exampl
 
 ### The goal of the analysis is to identify predictors that accurately determine execution quality or manner of exercise.
 
-Similar to the iris data set exercise predicting species based on a set of features.  q
+
 ```{r EDA }
 
 dim(exerciseData) # display number or rows/columns
@@ -150,7 +151,7 @@ confusionMatrix(predictions.rpart2,testing$class)
 * modFit.boost<-train(classe~.,method="gbm",
               data=training,
               verbose=FALSE)
-```{r model fitting Boosting}
+```{r model fitting Boosting, include=FALSE}
 modFit.boost<-train(classe~.,method="gbm",
               data=training,
               verbose=FALSE,na.action = na.omit)
@@ -158,6 +159,9 @@ modFit.boost<-train(classe~.,method="gbm",
 # Predict Using Test 
 predictions.boost<-predict(modFit.boost,newdata=testing)
 
+```
+
+```{r gbm confusion matrix}
 # Display accuracy data
 confusionMatrix(predictions.boost,testing$classe)
 
@@ -174,7 +178,9 @@ plot(modFit.boost, main="GBM Fit Model")
 2. The GBM model takes more time to complete.  
 3. Cross validation boosting method did not improve the accuracy of the Classification Tree model.
 
-### Running GBM model against validation data set.
+### Running GBM model against validation data set.  The expected out of sample error should correspond to the accuracy measurement of the best performing model (GBM).  The accuracy measurement of that model is 0.9997 so the out of sample error would be:
+
+* Out of sample error: 'r 1-0.9997'
 ```{r validation test set}
 validation$classe<-predict(modFit.boost,newdata=validation)
 
