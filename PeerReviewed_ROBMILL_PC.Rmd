@@ -1,0 +1,193 @@
+---
+title: "PracticalMachineLearning_ROBMILL_PC"
+output: html_document
+---
+### Final Peer Reviewed Assignment
+## Practical Machine Learning
+## Week 4
+
+```{r preparation, include=FALSE}
+# Load Librarys
+# Load Data
+library(kernlab)
+library(caret)
+library(ggplot2)
+library(Hmisc)
+library(gridExtra)
+library(graphics)
+library(klaR)
+
+#training<-read.csv(file = "pml-training.csv",stringsAsFactors #= FALSE) # Read training data
+
+exerciseData<-read.csv(file = "pml-trainingMod.csv") # Read training data
+
+validation<-read.csv(file = "pml-testing.csv") # Read testing data
+
+dim(exerciseData)
+```
+
+### Initial EDA on Raw Data Set
+Data comes from: 
+1.  <http://groupware.les.inf.puc-rio.br/har>
+2.  <http://groupware.les.inf.puc-rio.br/har#weight_lifting_exercises>
+
+The data set describes quality of execution for the wearer while doing dumbell lift exercises.  
+
+Different Classes of execution quality.  High level Class A represents an example of successful execution of the exercise while Classes B-E represent examples of common mistakes made.  
+
+* Class A: exactly according to specification.
+* Class B: throwing the elbows to the front.
+* Class C: lifting the dumbell only halfway.
+* Class D: lowering dumbell only halfway.
+* Class E: throwing the hips to the front.
+
+### The goal of the analysis is to identify predictors that accurately determine execution quality or manner of exercise.
+
+Similar to the iris data set exercise predicting species based on a set of features.  q
+```{r EDA }
+
+dim(exerciseData) # display number or rows/columns
+
+head(exerciseData) # display first few rows
+table(exerciseData$classe) # display a table using classe
+
+
+# Density plots
+qplot(total_accel_arm,colour=classe,
+      data=exerciseData, geom="density")
+
+qplot(total_accel_forearm,colour=classe,
+      data=exerciseData,geom="density")
+
+qplot(total_accel_dumbbell,colour=classe,
+      data=exerciseData, geom="density")
+
+qplot(total_accel_belt,colour=classe,
+      data=exerciseData, geom="density")
+
+featurePlot(x=exerciseData[,c("total_accel_forearm","total_accel_dumbbell","total_accel_belt","total_accel_arm")], 
+            y=exerciseData$classe, 
+            plot="pairs",
+            auto.key=list(columns = 5))
+```
+
+
+### Partition exerciseData Data and Pre-processing
+```{r Data Partitioning and Preproc}
+
+inTrain<-createDataPartition(exerciseData$classe,
+                             p=0.80,
+                             list=FALSE)
+
+
+training<-exerciseData[inTrain,]
+testing<-exerciseData[-inTrain,]
+
+# Display number of rows and columnts 
+# in training and testing data sets
+dim(training)
+dim(testing)
+
+# Set some alternate Cross-Validation Methods
+# Boosting - tc.b
+tc.b<-trainControl(method="boot", number=100)
+
+```
+### Naive Bayes Benchmark Model
+
+```{r model fitting Naive Bayes, include=FALSE}
+set.seed(323223)
+
+# Build benchmark model - Naive Bayes
+modFit.NB<-NaiveBayes(classe~., data=training,na.action = na.omit)
+
+# Predict using testing data set
+predictions.NB<-predict(modFit.NB,testing)
+```
+
+Naive Bayes confustion matrix:
+```{r NB Confusion Matrix}
+
+# Print accuracy measurements
+confusionMatrix(predictions.NB$class,testing$classe)
+
+
+```
+
+### Two classification tree algorithms:
+1. The first model is trained on a partitioned data set and validated against a testing data set.
+2. The second model is trained using cross-validation (boosting), and tested against the testing data set.
+
+```{r model fitting Classification Tree}
+
+# Train a model 
+modFit.rpart<-train(classe~.,method="rpart",data=training)
+
+modFit.rpart2<-train(classe~.,data=exerciseData,
+                     trControl=tc.b,
+                     method="rpart",
+                     na.action = na.omit)
+
+
+# Predict using CT model without CV
+predictions.rpart<-predict(modFit.rpart,testing)
+
+# Predict using CT model with CV
+predictions.rpart2<-predict(modFit.rpart2,testing)
+
+
+# Print accuracy measurements
+confusionMatrix(predictions.rpart,testing$classe)
+
+# Print accuracy measurments for predictions without CV
+confusionMatrix(predictions.rpart2,testing$class)
+
+
+```
+
+
+### Run a Boosting Algorithm against all features
+* modFit.boost<-train(classe~.,method="gbm",
+              data=training,
+              verbose=FALSE)
+```{r model fitting Boosting}
+modFit.boost<-train(classe~.,method="gbm",
+              data=training,
+              verbose=FALSE,na.action = na.omit)
+
+# Predict Using Test 
+predictions.boost<-predict(modFit.boost,newdata=testing)
+
+# Display accuracy data
+confusionMatrix(predictions.boost,testing$classe)
+
+```
+
+
+```{r model printing Boosting}
+plot(modFit.boost, main="GBM Fit Model")
+```
+
+
+# Results
+1. GBM model outperforms both the Naive Bayes and the Classification Tree models.
+2. The GBM model takes more time to complete.  
+3. Cross validation boosting method did not improve the accuracy of the Classification Tree model.
+
+### Running GBM model against validation data set.
+```{r validation test set}
+validation$classe<-predict(modFit.boost,newdata=validation)
+
+```
+
+
+## Citation
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+
+Read more: <http://groupware.les.inf.puc-rio.br/har#weight_lifting_exercises#ixzz4aHsvXnQK>
+
+### Useful links
+
+[Preprocess method](https://www.rdocumentation.org/packages/caret/versions/6.0-73/topics/preProcess)
+
+[Caret package](https://topepo.github.io/caret/model-training-and-tuning.html)
