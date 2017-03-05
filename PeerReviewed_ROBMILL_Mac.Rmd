@@ -27,11 +27,11 @@ dim(exerciseData)
 ```
 # Synopsis
 
-Data comes from: 
+Data source for reproducibility:
 1.  <http://groupware.les.inf.puc-rio.br/har>
 2.  <http://groupware.les.inf.puc-rio.br/har#weight_lifting_exercises>
 
-The data set describes quality of execution for the wearer while doing dumbell lift exercises.  
+The data set describes quality of execution for the device wearer while doing dumbbell lift exercises.  
 
 There are 5 different classes representing execution quality.  Class A represents an example of successful execution of the exercise while Classes B-E represent examples of common mistakes made.  
 
@@ -55,9 +55,9 @@ There are 5 different classes representing execution quality.  Class A represent
 3. GBM has an estimated out of sample error of ~.03%.
 
 ### Summary of model performance.
-1. Naive Bayes predicted all 5 classes of exercise quality equally.
+1. Naive Bayes predicted all 5 classes of execution quality equally.
 2. Classification trees failed to predict classes C and D while A, B, and E were reasonable.  EDA supports this finding.
-3. GBM may overfit - and predicts all classes of exercise quality equally.  
+3. GBM may overfit - and predicts all classes of execution quality equally.  
 
 ### Initial EDA on Raw Data Set
 ```{r EDA }
