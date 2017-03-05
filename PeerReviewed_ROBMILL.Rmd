@@ -6,7 +6,7 @@ output: html_document
 ## Practical Machine Learning
 ## Week 4
 
-```{r preparation}
+```{r preparation, include=FALSE}
 # Load Librarys
 # Load Data
 library(kernlab)
@@ -19,10 +19,9 @@ library(klaR)
 
 #training<-read.csv(file = "pml-training.csv",stringsAsFactors #= FALSE) # Read training data
 
-exerciseData<-read.csv(file = "pml-trainingMod.csv",
-                   stringsAsFactors = FALSE) # Read training data
+exerciseData<-read.csv(file = "pml-trainingMod.csv") # Read training data
 
-validation<-read.csv(file = "pml-testing.csv",stringsAsFactors = FALSE) # Read testing data
+validation<-read.csv(file = "pml-testing.csv") # Read testing data
 
 dim(exerciseData)
 ```
@@ -69,50 +68,68 @@ qplot(total_accel_belt,colour=classe,
 featurePlot(x=exerciseData[,c("total_accel_forearm","total_accel_dumbbell","total_accel_belt","total_accel_arm")], 
             y=exerciseData$classe, 
             plot="pairs",
-            auto.key=list(columns = 4))
+            auto.key=list(columns = 5))
 ```
 
 
-### Partition exerciseData Data and Processing
+### Partition exerciseData Data and Pre-processing
 ```{r Data Partitioning and Preproc}
 
-inTrain<-createDataPartition(exerciseData$classe,p=0.70,list=FALSE)
+inTrain<-createDataPartition(exerciseData$classe,
+                             p=0.80,
+                             list=FALSE)
 
 
 training<-exerciseData[inTrain,]
 testing<-exerciseData[-inTrain,]
 
+# Display number of rows and columnts 
+# in training and testing data sets
 dim(training)
 dim(testing)
+
+# Set some alternate Cross-Validation Methods
+# Boosting - tc.b
+tc.b<-trainControl(method="boot", number=100)
 
 ```
 
 
 ```{r model fitting Naive Bayes}
+set.seed(323223)
 
-training$classe<-as.factor(training$classe)
-training$classe
-
+# Build benchmark model - Naive Bayes
 modFit.NB<-NaiveBayes(classe~., data=training,na.action = na.omit)
 
-predictions<-predict(modFit.NB,testing)
-predictions$class
+# Predict using testing data set
+predictions.NB<-predict(modFit.NB,testing)
+
+# Print accuracy measurements
+confusionMatrix(predictions.NB$class,testing$classe)
 
 
-confusionMatrix(predictions$class,testing$classe)
 ```
 
 
 ```{r model fitting Classification Tree}
-modFit.rpart<-train(classe~total_accel_dumbbell+total_accel_arm+total_accel_belt,method="rpart",data=training)
 
-print(modFit.rpart$finalModel)
+# Train a model 
+modFit.rpart<-train(classe~.,method="rpart",data=training)
 
-plot(modFit.rpart$finalModel,uniform=TRUE,
-     main="Classification Tree")
-text(modFit.rpart$finalModel,use.n=TRUE,all=TRUE,cex=0.8)
+modFit.rpart2<-train(classe~.,data=exerciseData,
+                     trControl=tc.b,
+                     method="rpart",
+                     na.action = na.omit)
 
-predictions.rpart<-predict(modFit.rpart,newdata=testing)
+
+# Predict using CT model
+predictions.rpart<-predict(modFit.rpart2,testing)
+
+
+# Print accuracy measurements
+confusionMatrix(predictions.rpart,testing$classe)
+
+
 ```
 
 
@@ -123,14 +140,18 @@ predictions.rpart<-predict(modFit.rpart,newdata=testing)
 ```{r model fitting Boosting, include=FALSE}
 modFit.boost<-train(classe~.,method="gbm",
               data=training,
-              verbose=FALSE,na.action = na.pass)
+              verbose=FALSE,na.action = na.omit)
 
+# Predict Using Test 
 predictions.boost<-predict(modFit.boost,newdata=testing)
+
+# Display accuracy data
+confusionMatrix(predictions.boost,testing$classe)
 
 ```
 
 ```{r model printing Boosting}
-print(modFit.boost)
+plot(modFit.boost)
 ```
 
 
