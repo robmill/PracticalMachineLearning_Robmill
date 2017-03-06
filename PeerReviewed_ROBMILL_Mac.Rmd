@@ -169,13 +169,13 @@ modFit.boost<-train(classe~.,method="gbm",
 # Predict Using Test 
 predictions.boost<-predict(modFit.boost,newdata=testing)
 
-modFit.boost2<-train(class=.,method="gbm",
+modFit.boost2<-train(classe~.,method="gbm",
                      data=exerciseData,
                      verbose=FALSE,
                      na.action=na.omit,
                      trControl = tc.b)
 
-predictions.boost2<-predict(modFit.boost2,newdata=test)
+predictions.boost2<-predict(modFit.boost2,newdata=testing)
 
 ```
 
