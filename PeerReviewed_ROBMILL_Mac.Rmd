@@ -16,12 +16,31 @@ library(Hmisc)
 library(gridExtra)
 library(graphics)
 library(klaR)
+library(gbm)
+library(e1071)
+library(MASS)
+library(plyr)
 
 #training<-read.csv(file = "pml-training.csv",stringsAsFactors #= FALSE) # Read training data
 
-exerciseData<-read.csv(file = "pml-trainingMod.csv") # Read training data
+#exerciseData<-read.csv(file = "pml-training.csv") # Read training data
 
-validation<-read.csv(file = "pml-testing.csv") # Read testing data
+#validation<-read.csv(file = "pml-testing1.csv") # Read testing data
+
+#   Establish & Create Data Directory
+if (!file.exists("./data")) { dir.create("./data") }
+
+#   Retrieve and Load Training DataSet
+trainURL  <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+    trainCSV  <- "./data/pml-training.csv"
+    if (!file.exists(trainCSV)) {download.file( trainURL, destfile=trainCSV)}
+    exerciseData  <- read.csv(trainCSV, na.strings=c("NA",""), header=TRUE)
+
+#   Retrieve and Load Testing DataSet
+    testURL   <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+    testCSV   <- "./data/pml-testing.csv"
+    if (!file.exists(testCSV)) {download.file( testURL, destfile=testCSV)}
+    validation    <- read.csv(testCSV, na.strings=c("NA",""), header=TRUE)
 
 dim(exerciseData)
 ```
@@ -91,6 +110,36 @@ featurePlot(x=exerciseData[,c("total_accel_forearm","total_accel_dumbbell","tota
 ### Partition exerciseData Data and Pre-processing
 ```{r Data Partitioning and Preproc}
 
+  InputDf  <- exerciseData  # cleanse the Training Dataframe
+#   Step 1. Remove Variables containing missing or NA values.
+    InputDf <- exerciseData
+    Step01  <- InputDf[, colSums(is.na(InputDf)) == 0]
+    dim(Step01)
+
+#   Step 2. Remove timestamp and window variables that do not describe accelerometer measurements
+    target  <- grepl("^X|timestamp|window", names(Step01))
+    Step02  <- Step01[, !target]
+
+#   Step 3. Coerce accelerometer measurements (variables) to be numeric
+    classe        <- Step02$classe   #Preserve the classe (factor) variable 
+    Step03        <- Step02[, sapply(Step02, is.numeric)]
+    Step03$classe <- classe   #Join classe to the remaining dataset
+    exerciseData   <- Step03
+
+  InputDf  <- validation # cleanse the Testing Dataframe (using the same steps)
+#   Step 1. Remove Variables containing missing or NA values.
+    Step01  <- InputDf[, colSums(is.na(InputDf)) == 0]
+
+#   Step 2. Remove timestamp and window variables that do not describe accelerometer measurements
+    target  <- grepl("^X|timestamp|window", names(Step01))
+    Step02  <- Step01[, !target]
+
+#   Step 3. Coerce accelerometer measurements (variables) to be numeric - classe doesn't exist in test
+    Step03  <- Step02[, sapply(Step02, is.numeric)]
+    validation  <- Step03
+
+
+
 inTrain<-createDataPartition(exerciseData$classe,
                              p=0.80,
                              list=FALSE)
@@ -104,9 +153,11 @@ testing<-exerciseData[-inTrain,]
 dim(training)
 dim(testing)
 
+dim(validation)
+
 # Set some alternate Cross-Validation Methods
-# Boosting - tc.b
-tc.b<-trainControl(method="boot", number=100)
+fitControl <- trainControl(method = "cv", number=3)
+fitControl
 
 ```
 
@@ -115,7 +166,7 @@ tc.b<-trainControl(method="boot", number=100)
 
 
 # Build benchmark model - Naive Bayes
-modFit.NB<-NaiveBayes(classe~., data=training,na.action = na.omit)
+modFit.NB<-NaiveBayes(classe~., data=training)
 
 # Predict using testing data set
 predictions.NB<-predict(modFit.NB,testing)
@@ -132,12 +183,8 @@ confusionMatrix(predictions.NB$class,testing$classe)
 ```{r model fitting Classification Tree, include=FALSE}
 
 # Train a model 
-modFit.rpart<-train(classe~.,method="rpart",data=training)
-
-modFit.rpart<-train(classe~.,data=exerciseData,
-                     trControl=tc.b,
-                     method="rpart",
-                     na.action = na.omit)
+modFit.rpart<-train(classe~.,data=training,
+                     method="rpart",trControl=fitControl)
 
 
 
@@ -161,52 +208,39 @@ confusionMatrix(predictions.rpart,testing$classe)
 * modFit.boost<-train(classe~.,method="gbm",
               data=training,
               verbose=FALSE)
-```{r model fitting Boosting, include=FALSE}
-modFit.boost<-train(classe~.,method="gbm",
-              data=training,
-              verbose=FALSE,na.action = na.omit)
-
-# Predict Using Test 
-predictions.boost<-predict(modFit.boost,newdata=testing)
-
-modFit.boost2<-train(classe~.,method="gbm",
-                     data=exerciseData,
+```{r model fitting RF, include=FALSE}
+# Train a model using RF
+modFit.boost2<-train(classe~.,method="rf",
+                     data=training,
                      verbose=FALSE,
-                     na.action=na.omit,
-                     trControl = tc.b)
+                     trControl=fitControl)
 
 predictions.boost2<-predict(modFit.boost2,newdata=testing)
 
 ```
 
-```{r GBM confustion matrix}
-# Display accuracy data - partitioned data
-confusionMatrix(predictions.boost,testing$classe)
-
+```{r rf confusion matrix}
 # Cross-validated data
 confusionMatrix(predictions.boost2,testing$classe)
 
 ```
 
-```{r model printing Boosting}
-plot(modFit.boost)
+```{r model printing RF}
 plot(modFit.boost2)
 ```
 
 ```{r generate validation output}
-validation$classe<-predict(modFit.boost,newdata=validation,
-                          na.action=na.omit)
+#validation$classe<-predict(modFit.boost,newdata=validation)
+
+#print(validation$classe)
+
+#write.csv(validation,file = "exprediction.csv")
+
+validation$classe<-predict(modFit.boost2,newdata=validation)
 
 print(validation$classe)
 
-write.csv(validation,file = "exprediction.csv")
-
-validation$classe<-predict(modFit.boost2,newdata=validation,
-                          na.action=na.omit)
-
-print(validation$classee)
-
-write.csv(validation,file="excvprediction.csv")
+write.csv(validation,file="rfprediction.csv")
 
 
 
