@@ -187,7 +187,6 @@ modFit.rpart<-train(classe~.,data=training,
                      method="rpart",trControl=fitControl)
 
 
-
 ```
 
 ```{r CT predictions}
@@ -205,9 +204,27 @@ confusionMatrix(predictions.rpart,testing$classe)
 
 
 ### Run a Boosting Algorithm against all features
-* modFit.boost<-train(classe~.,method="gbm",
-              data=training,
-              verbose=FALSE)
+
+```{r model fitting GBM, include=FALSE}
+# Train a model using RF
+modFit.boost<-train(classe~.,method="gbm",
+                     data=training,
+                     verbose=FALSE,
+                     trControl=fitControl)
+
+predictions.boost<-predict(modFit.boost,newdata=testing)
+
+```
+
+### GBM Confusion Matrix
+```{r gbm confusion matrix}
+confusionMatrix(predictions.boost,testing$classe)
+```
+          
+```{r gbm model plot}
+plot(modFit.boost)
+```
+### Running a Random Forest model against all features
 ```{r model fitting RF, include=FALSE}
 # Train a model using RF
 modFit.boost2<-train(classe~.,method="rf",
@@ -219,6 +236,7 @@ predictions.boost2<-predict(modFit.boost2,newdata=testing)
 
 ```
 
+### Randdom Forest Confustion Matrix
 ```{r rf confusion matrix}
 # Cross-validated data
 confusionMatrix(predictions.boost2,testing$classe)
@@ -230,11 +248,11 @@ plot(modFit.boost2)
 ```
 
 ```{r generate validation output}
-#validation$classe<-predict(modFit.boost,newdata=validation)
+validation$classe<-predict(modFit.boost,newdata=validation)
 
-#print(validation$classe)
+print(validation$classe)
 
-#write.csv(validation,file = "exprediction.csv")
+write.csv(validation,file = "exprediction.csv")
 
 validation$classe<-predict(modFit.boost2,newdata=validation)
 
